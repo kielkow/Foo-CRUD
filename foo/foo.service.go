@@ -25,7 +25,12 @@ func SetupRoutes(apiBasePath string) {
 func foosHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		fooList := getFooList()
+		fooList, err := getFooList()
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		foosJSON, err := json.Marshal(fooList)
 
@@ -83,7 +88,12 @@ func fooHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	foo := getFoo(productID)
+	foo, err := getFoo(productID)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if foo == nil {
 		w.WriteHeader(http.StatusNotFound)

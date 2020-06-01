@@ -1,6 +1,7 @@
 package foo
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,8 @@ import (
 	"os"
 	"sort"
 	"sync"
+
+	"github.com/pluralsight/inventoryservice/database"
 )
 
 var fooMap = struct {
@@ -51,15 +54,36 @@ func loadFooMap() (map[int]Foo, error) {
 	return prodMap, nil
 }
 
-func getFoo(productID int) *Foo {
-	fooMap.RLock()
-	defer fooMap.RUnlock()
+func getFoo(productID int) (*Foo, error) {
+	row := database.DbConn.QueryRow(
+		`SELECT 
+			productId, 
+			message, 
+			age, 
+			name, 
+			surname 
+		FROM foos
+		WHERE productId = ?`,
+		productID,
+	)
 
-	if foo, ok := fooMap.m[productID]; ok {
-		return &foo
+	foo := &Foo{}
+
+	err := row.Scan(
+		&foo.ProductID,
+		&foo.Message,
+		&foo.Age,
+		&foo.Name,
+		&foo.Surname,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return foo, nil
 }
 
 func removeFoo(productID int) {
@@ -69,17 +93,40 @@ func removeFoo(productID int) {
 	delete(fooMap.m, productID)
 }
 
-func getFooList() []Foo {
-	fooMap.RLock()
-	foos := make([]Foo, 0, len(fooMap.m))
+func getFooList() ([]Foo, error) {
+	results, err := database.DbConn.Query(
+		`SELECT 
+			productId, 
+			message, 
+			age, 
+			name, 
+			surname 
+		from foos`,
+	)
 
-	for _, value := range fooMap.m {
-		foos = append(foos, value)
+	if err != nil {
+		return nil, err
 	}
 
-	fooMap.RUnlock()
+	defer results.Close()
 
-	return foos
+	foos := make([]Foo, 0)
+
+	for results.Next() {
+		var foo Foo
+
+		results.Scan(
+			&foo.ProductID,
+			&foo.Message,
+			&foo.Age,
+			&foo.Name,
+			&foo.Surname,
+		)
+
+		foos = append(foos, foo)
+	}
+
+	return foos, nil
 }
 
 func getFooIds() []int {
@@ -105,7 +152,11 @@ func addOrUpdateFoo(foo Foo) (int, error) {
 	addOrUpdateID := -1
 
 	if foo.ProductID > 0 {
-		oldFoo := getFoo(foo.ProductID)
+		oldFoo, err := getFoo(foo.ProductID)
+
+		if err != nil {
+			return addOrUpdateID, err
+		}
 
 		if oldFoo == nil {
 			return 0, fmt.Errorf("Foo id [%d] doesn't exist", foo.ProductID)
