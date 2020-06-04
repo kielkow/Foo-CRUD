@@ -2,57 +2,9 @@ package foo
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"sort"
-	"sync"
 
 	"github.com/pluralsight/inventoryservice/database"
 )
-
-var fooMap = struct {
-	sync.RWMutex
-	m map[int]Foo
-}{m: make(map[int]Foo)}
-
-func init() {
-	fmt.Println("loading foos...")
-	prodMap, err := loadFooMap()
-	fooMap.m = prodMap
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("%d foos loaded...\n", len(fooMap.m))
-}
-
-func loadFooMap() (map[int]Foo, error) {
-	fileName := "foos.json"
-	_, err := os.Stat(fileName)
-
-	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("file [%s] does not exist", fileName)
-	}
-
-	file, _ := ioutil.ReadFile(fileName)
-	fooList := make([]Foo, 0)
-	err = json.Unmarshal([]byte(file), &fooList)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	prodMap := make(map[int]Foo)
-	for i := 0; i < len(fooList); i++ {
-		prodMap[fooList[i].ProductID] = fooList[i]
-	}
-
-	return prodMap, nil
-}
 
 func getFoo(productID int) (*Foo, error) {
 	row := database.DbConn.QueryRow(
@@ -86,11 +38,16 @@ func getFoo(productID int) (*Foo, error) {
 	return foo, nil
 }
 
-func removeFoo(productID int) {
-	fooMap.RLock()
-	defer fooMap.RUnlock()
+func removeFoo(productID int) error {
+	_, err := database.DbConn.Query(
+		`DELETE FROM foos WHERE productId = ?`, productID,
+	)
 
-	delete(fooMap.m, productID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getFooList() ([]Foo, error) {
@@ -129,48 +86,52 @@ func getFooList() ([]Foo, error) {
 	return foos, nil
 }
 
-func getFooIds() []int {
-	fooMap.RLock()
-	fooIds := []int{}
+func updateFoo(foo Foo) error {
+	_, err := database.DbConn.Exec(
+		`UPDATE foos SET 
+			message = ?, 
+			age = ?, 
+			name = ?, 
+			surname = ?
+		WHERE productId = ? `,
+		foo.Message,
+		foo.Age,
+		foo.Name,
+		foo.Surname,
+	)
 
-	for key := range fooMap.m {
-		fooIds = append(fooIds, key)
+	if err != nil {
+		return err
 	}
 
-	fooMap.RUnlock()
-	sort.Ints(fooIds)
-
-	return fooIds
+	return nil
 }
 
-func getNextFooID() int {
-	fooIDs := getFooIds()
-	return fooIDs[len(fooIDs)-1] + 1
-}
+func insertFoo(foo Foo) (int, error) {
+	result, err := database.DbConn.Exec(
+		`INSERT INTO foos 
+			(
+				message, 
+				age, 
+				name, 
+				surname
+			) 
+		VALUES (?, ?, ?, ?)`,
+		foo.Message,
+		foo.Age,
+		foo.Name,
+		foo.Surname,
+	)
 
-func addOrUpdateFoo(foo Foo) (int, error) {
-	addOrUpdateID := -1
-
-	if foo.ProductID > 0 {
-		oldFoo, err := getFoo(foo.ProductID)
-
-		if err != nil {
-			return addOrUpdateID, err
-		}
-
-		if oldFoo == nil {
-			return 0, fmt.Errorf("Foo id [%d] doesn't exist", foo.ProductID)
-		}
-
-		addOrUpdateID = foo.ProductID
-	} else {
-		addOrUpdateID = getNextFooID()
-		foo.ProductID = addOrUpdateID
+	if err != nil {
+		return 0, err
 	}
 
-	fooMap.Lock()
-	fooMap.m[addOrUpdateID] = foo
-	fooMap.Unlock()
+	insertID, err := result.LastInsertId()
 
-	return addOrUpdateID, nil
+	if err != nil {
+		return 0, err
+	}
+
+	return int(insertID), err
 }

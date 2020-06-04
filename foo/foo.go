@@ -1,5 +1,6 @@
 package foo
 
+// Foo struct
 type Foo struct {
 	ProductID int    `json:"productId"`
 	Message   string `json:"message"`

@@ -14,6 +14,7 @@ import (
 
 const foosBasePath = "foos"
 
+// SetupRoutes function
 func SetupRoutes(apiBasePath string) {
 	handleFoos := http.HandlerFunc(foosHandler)
 	handleFoo := http.HandlerFunc(fooHandler)
@@ -63,7 +64,7 @@ func foosHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = addOrUpdateFoo(newFoo)
+		_, err = insertFoo(newFoo)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -84,7 +85,7 @@ func fooHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Print(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -134,13 +135,26 @@ func fooHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		addOrUpdateFoo(updatedFoo)
+		err = updateFoo(updatedFoo)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		w.WriteHeader(http.StatusOK)
 		return
 
 	case http.MethodDelete:
-		removeFoo(productID)
+		err = removeFoo(productID)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return
 
 	case http.MethodOptions:
 		return
