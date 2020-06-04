@@ -1,13 +1,19 @@
 package foo
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
 	"github.com/pluralsight/inventoryservice/database"
 )
 
 func getFoo(productID int) (*Foo, error) {
-	row := database.DbConn.QueryRow(
+	ctx, cancel := context.WithTimeout(context.Background(), 15 * time.Second)
+	defer cancel()
+
+	row := database.DbConn.QueryRowContext( 
+		ctx,
 		`SELECT 
 			productId, 
 			message, 
@@ -39,7 +45,11 @@ func getFoo(productID int) (*Foo, error) {
 }
 
 func removeFoo(productID int) error {
-	_, err := database.DbConn.Query(
+	ctx, cancel := context.WithTimeout(context.Background(), 15 * time.Second)
+	defer cancel()
+
+	_, err := database.DbConn.ExecContext(
+		ctx,
 		`DELETE FROM foos WHERE productId = ?`, productID,
 	)
 
@@ -51,7 +61,11 @@ func removeFoo(productID int) error {
 }
 
 func getFooList() ([]Foo, error) {
-	results, err := database.DbConn.Query(
+	ctx, cancel := context.WithTimeout(context.Background(), 15 * time.Second)
+	defer cancel()
+
+	results, err := database.DbConn.QueryContext(
+		ctx,
 		`SELECT 
 			productId, 
 			message, 
@@ -87,7 +101,11 @@ func getFooList() ([]Foo, error) {
 }
 
 func updateFoo(foo Foo) error {
-	_, err := database.DbConn.Exec(
+	ctx, cancel := context.WithTimeout(context.Background(), 15 * time.Second)
+	defer cancel()
+
+	_, err := database.DbConn.ExecContext(
+		ctx,
 		`UPDATE foos SET 
 			message = ?, 
 			age = ?, 
@@ -108,7 +126,11 @@ func updateFoo(foo Foo) error {
 }
 
 func insertFoo(foo Foo) (int, error) {
-	result, err := database.DbConn.Exec(
+	ctx, cancel := context.WithTimeout(context.Background(), 15 * time.Second)
+	defer cancel()
+
+	result, err := database.DbConn.ExecContext(
+		ctx,
 		`INSERT INTO foos 
 			(
 				message, 
