@@ -116,6 +116,7 @@ func updateFoo(foo Foo) error {
 		foo.Age,
 		foo.Name,
 		foo.Surname,
+		foo.ProductID,
 	)
 
 	if err != nil {
