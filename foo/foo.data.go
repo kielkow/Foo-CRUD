@@ -158,3 +158,43 @@ func insertFoo(foo Foo) (int, error) {
 
 	return int(insertID), err
 }
+
+func getToptenFoos() ([]Foo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	defer cancel()
+
+	results, err := database.DbConn.QueryContext(
+		ctx,
+		`SELECT 
+			productId, 
+			message, 
+			age, 
+			name, 
+			surname 
+		from foos ORDER BY productId DESC LIMIT 10`,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer results.Close()
+
+	foos := make([]Foo, 0)
+
+	for results.Next() {
+		var foo Foo
+
+		results.Scan(
+			&foo.ProductID,
+			&foo.Message,
+			&foo.Age,
+			&foo.Name,
+			&foo.Surname,
+		)
+
+		foos = append(foos, foo)
+	}
+
+	return foos, nil
+}
