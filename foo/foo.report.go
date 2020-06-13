@@ -47,11 +47,9 @@ func handleFooReport(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var tmpl bytes.Buffer
-		var foo Foo
 
 		if len(foos) > 0 {
-			foo = foos[0]
-			err = t.Execute(&tmpl, foo)
+			err = t.Execute(&tmpl, foos)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 			return

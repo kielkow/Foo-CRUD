@@ -7,9 +7,19 @@
 </head>
 <body>
   <h1>Foo Summary Report</h1>
-  <div>
-    <span>Foo Name: {{.Name}}</span>
-    <span>Foo Surname: {{.Surname}}</span>
-  </div>
+  <table>
+  <tr>
+    <th>Row</th>
+    <th>Name</th>
+    <th>Surname</th>
+  </tr>
+  {{range $index, $element := .}}
+  <tr>
+    <td>{{$index}}</td>
+    <td>{{.Name}}</td>
+    <td>{{.Surname}}</td>
+  </tr>
+  {{end}}
+  </table>
 </body>
 </html>
