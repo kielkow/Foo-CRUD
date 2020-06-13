@@ -37,7 +37,7 @@ func handleFooReport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t := template.New("report.gotmpl")
+		t := template.New("report.gotmpl").Funcs(template.FuncMap{"mod": func(i, x int) bool { return i%x == 0 }})
 		t, err = t.ParseFiles(path.Join("templates", "report.gotmpl"))
 
 		if err != nil {
