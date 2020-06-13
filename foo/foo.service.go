@@ -20,10 +20,14 @@ func SetupRoutes(apiBasePath string) {
 	handleFoos := http.HandlerFunc(foosHandler)
 	handleFoo := http.HandlerFunc(fooHandler)
 
+	reportHandler := http.HandlerFunc(handleFooReport)
+
 	http.Handle("/websocket", websocket.Handler(fooSocket))
 
 	http.Handle(fmt.Sprintf("%s/%s", apiBasePath, foosBasePath), cors.Middleware(handleFoos))
 	http.Handle(fmt.Sprintf("%s/%s/", apiBasePath, foosBasePath), cors.Middleware(handleFoo))
+
+	http.Handle(fmt.Sprintf("%s/%s/reports", apiBasePath, foosBasePath), cors.Middleware(reportHandler))
 }
 
 func foosHandler(w http.ResponseWriter, r *http.Request) {

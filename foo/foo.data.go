@@ -3,6 +3,8 @@ package foo
 import (
 	"context"
 	"database/sql"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/pluralsight/inventoryservice/database"
@@ -175,6 +177,64 @@ func getToptenFoos() ([]Foo, error) {
 	)
 
 	if err != nil {
+		return nil, err
+	}
+
+	defer results.Close()
+
+	foos := make([]Foo, 0)
+
+	for results.Next() {
+		var foo Foo
+
+		results.Scan(
+			&foo.ProductID,
+			&foo.Message,
+			&foo.Age,
+			&foo.Name,
+			&foo.Surname,
+		)
+
+		foos = append(foos, foo)
+	}
+
+	return foos, nil
+}
+
+func searchFooData(fooFilter ReportFilter) ([]Foo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var queryArgs = make([]interface{}, 0)
+	var queryBuilder strings.Builder
+
+	queryBuilder.WriteString(`SELECT
+		productId,
+		message,
+		age,
+		LOWER(name), 
+		LOWER(surname)
+		FROM foos WHERE
+	`)
+
+	if fooFilter.Name != "" {
+		queryBuilder.WriteString(`name LIKE ? `)
+		queryArgs = append(queryArgs, "%"+strings.ToLower(fooFilter.Name)+"%")
+	}
+
+	if fooFilter.Surname != "" {
+		if len(queryArgs) > 0 {
+			queryBuilder.WriteString(" AND ")
+		}
+
+		queryBuilder.WriteString(`surname LIKE ? `)
+		queryArgs = append(queryArgs, "%"+strings.ToLower(fooFilter.Surname)+"%")
+	}
+
+	results, err := database.DbConn.QueryContext(ctx, queryBuilder.String(), queryArgs...)
+
+	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 
