@@ -6,6 +6,6 @@ COPY . .
 
 RUN GOOS=linux go build -ldflags="-s -w"
 
-EXPOSE 3000
+EXPOSE 3333
 
 ENTRYPOINT ["./main"]
