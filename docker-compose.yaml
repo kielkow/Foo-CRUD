@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx
+    volumes:
+      - ./nginx:/usr/share/nginx/
+    ports:
+      - 8080:80
+  
+  mysql:
+    image: mysql:latest
+    expose: 
+      - 3306
